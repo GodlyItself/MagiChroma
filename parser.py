@@ -127,35 +127,8 @@ def parse():
 
                 # LET STATEMENT
                 if peek() == 'LET':
-                    consume('LET')
-                    predefined = False
-                    var_name = consume() # Grab variable name
-                    type_ = None
-                    if peek() == ':':
-                        consume() #Consume for type dec
-                        type_ = peek()
-                        if type_ in types or type_ in classes:
-                            pass
-                        else:
-                            raise SyntaxError(f'{type_} is unknown.')
-
-                    if peek() == '=':
-                        consume('=')        # Enforce '='
-                        predefined = True
-                        value_expr = pratt_parse(0) 
-                    else:
-                        predefined = False
-                    
-                    line_ast = {
-                        'type': 'VariableDeclaration',
-                        'body': {
-                            'variable' : var_name,
-                            'type' : type_ if type_ in types or type_ in classes else 'any',
-                            'value' : value_expr if predefined else None
-                        }
-                    }
-
-                else:
+                    line_ast = parse_if_statement(variables, classes)
+                if 0 == 1:
                     # If it's a normal mathematical or logical calculation line, fallback to Pratt
                     line_ast = pratt_parse(0)
 
