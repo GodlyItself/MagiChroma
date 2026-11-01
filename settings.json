@@ -1,0 +1,6 @@
+{
+  "window.titleBarStyle": "custom",
+  "vscode_custom_css.imports": [
+    "file:///C:/Users/Tejas Satyendra T/Desktop/playground/MagiChroma/chrome.css"
+  ]
+}
