@@ -109,6 +109,9 @@ tokens = {
 
     # --- 9. Special Arrow Operators ---
     '=>': 'ARROW',
+
+    #--- 10. Strings ---
+    '`' : 'TOGGLE_F_STRING',
 }
 
 keywords = {

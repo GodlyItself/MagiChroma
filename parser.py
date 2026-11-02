@@ -38,6 +38,9 @@ def get_binding_power(token: str) -> int:
     }
     return binding_power.get(token, 0)
 
+def is_f_string(token):
+    return token.startswith('f"') or token.startswith("f'")
+
 def pratt_parse(current_bp: int = 0):
     """Parses expressions using Top-Down Operator Precedence."""
     global cursor
@@ -54,6 +57,8 @@ def pratt_parse(current_bp: int = 0):
         left = ('Numerical Literal', int(token))
     elif is_variable(token):
         left = ('Variable', token)
+    elif is_f_string(token):
+        left = parse_if_statement()
     else:
         raise SyntaxError(f"Unexpected token starting an expression: '{token}' at position {cursor-1}") 
 
@@ -79,7 +84,7 @@ def pratt_parse(current_bp: int = 0):
 
     return left
 
-def parse_variable_declaration(variables, classes, explicity=True, const=False):
+def parse_variable_declaration(classes, explicity=True, const=False): #takes classes for type checking.
 
     if explicity: #For python-like variable direct declarations
         if const:
@@ -92,9 +97,11 @@ def parse_variable_declaration(variables, classes, explicity=True, const=False):
     predefined = False
     var_name = consume() # Grab variable name
     type_ = None
+
     if peek() == ':':
         consume() #Consume for type dec
         type_ = peek()
+
         if type_ in types or type_ in classes:
             pass
         else:
@@ -117,6 +124,10 @@ def parse_variable_declaration(variables, classes, explicity=True, const=False):
             }
         }
 
+def parse_if_statement():
+    consume('IF')
+    pratt_parse()
+
 def parse():
     global input_stream, cursor
     ast = {'type': 'Program', 'body' : []}
@@ -137,9 +148,11 @@ def parse():
                 # LET STATEMENT
                 match peek():
                     case 'LET':
-                        line_ast = parse_variable_declaration(variables, classes)
+                        line_ast = parse_variable_declaration( classes)
                     case 'CONST':
-                        line_ast = parse_variable_declaration(variables, classes, const=True)
+                        line_ast = parse_variable_declaration( classes, const=True)
+                    case 'IF':
+                        line_ast = parse_if_statement()
                     case _:
                         # If it's a normal mathematical or logical calculation line, fallback to Pratt
                         line_ast = pratt_parse(0)
@@ -154,7 +167,6 @@ def parse():
 
     return ast
 
-# Testing your layout
-input_stream = ['CONST', 'X', '=', '2', '+', '5', '*', '4']
-cursor = 0
-print(parse())
+#input_stream = ['CONST', 'X', '=', '2', '+', '5', '*', '4']
+#cursor = 0
+#print(parse())

@@ -42,5 +42,5 @@ def lexer(code: str):
         raise SyntaxError(f"Unexpected character: {char}")
 
     return tokens_list
-
-print(lexer('abcd()'))
+'''test_input = 'f"{var} string" '
+print(lexer(test_input'))'''
