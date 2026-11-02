@@ -110,7 +110,8 @@ def parse_variable_declaration(variables, classes, explicity=True, const=False):
     return   {
         'type': 'VariableDeclaration',
         'body': {
-        'variable' : var_name,
+            'variable' : var_name,
+            'mutability' : const,
             'type' : type_ if type_ in types or type_ in classes else 'any',
             'value' : value_expr if predefined else None
             }
@@ -154,6 +155,6 @@ def parse():
     return ast
 
 # Testing your layout
-input_stream = ['LET', 'X', '=', '2', '+', '5', '*', '4']
+input_stream = ['CONST', 'X', '=', '2', '+', '5', '*', '4']
 cursor = 0
 print(parse())
