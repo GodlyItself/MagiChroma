@@ -79,8 +79,16 @@ def pratt_parse(current_bp: int = 0):
 
     return left
 
-def parse_if_statement(variables, classes):
-    consume('LET')
+def parse_variable_declaration(variables, classes, explicity=True, const=False):
+
+    if explicity: #For python-like variable direct declarations
+        if const:
+            consume('CONST')
+        else:
+            consume ('LET')
+    else:
+        pass
+
     predefined = False
     var_name = consume() # Grab variable name
     type_ = None
@@ -124,13 +132,16 @@ def parse():
 
                 input_stream = cached_line
                 cursor = 0
-
+                line_ast = []
                 # LET STATEMENT
-                if peek() == 'LET':
-                    line_ast = parse_if_statement(variables, classes)
-                if 0 == 1:
-                    # If it's a normal mathematical or logical calculation line, fallback to Pratt
-                    line_ast = pratt_parse(0)
+                match peek():
+                    case 'LET':
+                        line_ast = parse_variable_declaration(variables, classes)
+                    case 'CONST':
+                        line_ast = parse_variable_declaration(variables, classes, const=True)
+                    case _:
+                        # If it's a normal mathematical or logical calculation line, fallback to Pratt
+                        line_ast = pratt_parse(0)
 
                 ast['body'].append(line_ast)
 
