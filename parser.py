@@ -31,6 +31,8 @@ def get_binding_power(token: str) -> int:
     binding_power = {
         'or': 10,
         'and': 20,
+        '<': 35, '>': 35, '<=': 35, '>=': 35,
+        '==': 35, '!=': 35, '===': 35, '!==': 35,
         '+': 40, '-': 40,
         '*': 50, '/': 50, '//': 50, '%': 50,
         '**': 60,
@@ -74,14 +76,14 @@ def pratt_parse(current_bp: int = 0):
                     consume(',')  # Skip the comma token
                     args.append(pratt_parse(0))
             consume(')')
-            left = ('Call', left, args)
+            left = ("Call", left, args)
         else:
             next_bp = get_binding_power(operator)
             if operator == '**':
                 next_bp -= 1
 
             right = pratt_parse(next_bp)
-            left = ('BinaryOp', operator, left, right)
+            left = ("BinaryOp", operator, left, right)
 
     return left
 
@@ -89,9 +91,9 @@ def parse_variable_declaration(classes, explicity=True, const=False): #takes cla
 
     if explicity: #For python-like variable direct declarations
         if const:
-            consume('CONST')
+            consume('CONST' if peek() == 'CONST' else 'const')
         else:
-            consume ('LET')
+            consume('LET' if peek() == 'LET' else 'let')
     else:
         pass
 
@@ -108,53 +110,67 @@ def parse_variable_declaration(classes, explicity=True, const=False): #takes cla
         else:
             raise SyntaxError(f'{type_} is unknown.')
 
-        if peek() == '=':
-            consume('=')        # Enforce '='
-            predefined = True
-            value_expr = pratt_parse(0) 
-        else:
-            predefined = False
+    if peek() == '=':
+        consume('=')
+        predefined = True
+        value_expr = pratt_parse(0)
                     
     return   {
-        'type': 'VariableDeclaration',
-        'body': {
-            'variable' : var_name,
-            'mutability' : const,
-            'type' : type_ if type_ in types or type_ in classes else 'any',
-            'value' : value_expr if predefined else None
+        "type": "VariableDeclaration",
+        "body": {
+            "variable": var_name,
+            "mutability": const,
+            "type": type_ if type_ in types or type_ in classes else "any",
+            "value": value_expr if predefined else None
             }
         }
 
 def parse_block(classes=None):
-    if peek() != 'LBRACE':
+    opening = peek()
+    if opening not in ('LBRACE', '{'):
         raise SyntaxError(f"Expected 'LBRACE', but found '{peek()}' at position {cursor}")
-    consume('LBRACE')
+    consume(opening)
 
-    program = parse(terminator='RBRACE', classes=classes)
-    return {'type': 'BlockStatement', 'body': program['body']}
+    terminator = 'RBRACE' if opening == 'LBRACE' else '}'
+    program = parse(terminator=terminator, classes=classes)
+    return {"type": "Scope", "body": program["body"]}
 
 def parse_if_statement(classes=None):
-    consume('IF')
+    consume('IF' if peek() == 'IF' else 'if')
     condition = pratt_parse()
     body = parse_block(classes)
     return {
-        'type': 'IfStatement',
-        'condition': condition,
-        'body': body
+        "type": "IfStatement",
+        "condition": condition,
+        "body": body
     }
+
+def parse_variable_mutation():
+    var_name = peek()
+    consume() #registered and ate variable name
+
+    consume() #ate '='
+
+    val = pratt_parse()
+
+    return {
+        "type" : "VariableMutation",
+        "name" : var_name,
+        "value" : val
+    } 
 
 def parse_statement(classes):
     match peek():
-        case 'LET':
+        case 'LET' | 'let':
             return parse_variable_declaration(classes)
-        case 'CONST':
+        case 'CONST' | 'const':
             return parse_variable_declaration(classes, const=True)
-        case 'IF':
+        case 'IF' | 'if':
             return parse_if_statement(classes)
-        case 'LBRACE':
+        case 'LBRACE' | '{':
             return parse_block(classes)
         case _:
-            return pratt_parse(0)
+            return parse_variable_mutation()
 
 def parse(terminator=None, classes=None):
     global input_stream, cursor
@@ -170,7 +186,7 @@ def parse(terminator=None, classes=None):
             if terminator is not None:
                 raise SyntaxError(f"Unterminated block starting before position {cursor}")
             break
-        if token == 'RBRACE':
+        if token in ('RBRACE', '}'):
             raise SyntaxError(f"Unexpected 'RBRACE' at position {cursor}")
         if token in ('EOL', ';'):
             consume()
@@ -178,8 +194,8 @@ def parse(terminator=None, classes=None):
 
         body.append(parse_statement(classes))
 
-    return {'type': 'Program', 'body': body}
+    return {"type": "Program", "body": body}
 
-input_stream = []
+input_stream = ['X', '=', '0']
 cursor = 0
 print(parse())
