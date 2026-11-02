@@ -46,6 +46,7 @@ def pratt_parse(current_bp: int = 0):
     global cursor
 
     token = consume()
+
     if token == 'not':
         left = ('Unary Operation', 'not', pratt_parse(30))
     elif token in ('+', '-'):
@@ -100,7 +101,7 @@ def parse_variable_declaration(classes, explicity=True, const=False): #takes cla
 
     if peek() == ':':
         consume() #Consume for type dec
-        type_ = peek()
+        type_ = consume()
 
         if type_ in types or type_ in classes:
             pass
@@ -124,49 +125,61 @@ def parse_variable_declaration(classes, explicity=True, const=False): #takes cla
             }
         }
 
-def parse_if_statement():
+def parse_block(classes=None):
+    if peek() != 'LBRACE':
+        raise SyntaxError(f"Expected 'LBRACE', but found '{peek()}' at position {cursor}")
+    consume('LBRACE')
+
+    program = parse(terminator='RBRACE', classes=classes)
+    return {'type': 'BlockStatement', 'body': program['body']}
+
+def parse_if_statement(classes=None):
     consume('IF')
-    pratt_parse()
+    condition = pratt_parse()
+    body = parse_block(classes)
+    return {
+        'type': 'IfStatement',
+        'condition': condition,
+        'body': body
+    }
 
-def parse():
+def parse_statement(classes):
+    match peek():
+        case 'LET':
+            return parse_variable_declaration(classes)
+        case 'CONST':
+            return parse_variable_declaration(classes, const=True)
+        case 'IF':
+            return parse_if_statement(classes)
+        case 'LBRACE':
+            return parse_block(classes)
+        case _:
+            return pratt_parse(0)
+
+def parse(terminator=None, classes=None):
     global input_stream, cursor
-    ast = {'type': 'Program', 'body' : []}
-    cached_line = []
-    variables = []
-    classes = []
-    
-    # Append a trailing 'EOF' to guarantee the final line in input_stream triggers processing
-    for tk in input_stream + ['EOF']:
-        if tk == 'EOL' or tk == 'EOF':
-            if cached_line:
-                orignal_stream = input_stream
-                orignal_cursor = cursor
+    classes = [] if classes is None else classes
+    body = []
 
-                input_stream = cached_line
-                cursor = 0
-                line_ast = []
-                # LET STATEMENT
-                match peek():
-                    case 'LET':
-                        line_ast = parse_variable_declaration( classes)
-                    case 'CONST':
-                        line_ast = parse_variable_declaration( classes, const=True)
-                    case 'IF':
-                        line_ast = parse_if_statement()
-                    case _:
-                        # If it's a normal mathematical or logical calculation line, fallback to Pratt
-                        line_ast = pratt_parse(0)
+    while True:
+        token = peek()
+        if token == terminator and terminator is not None:
+            consume(terminator)
+            break
+        if token == '':
+            if terminator is not None:
+                raise SyntaxError(f"Unterminated block starting before position {cursor}")
+            break
+        if token == 'RBRACE':
+            raise SyntaxError(f"Unexpected 'RBRACE' at position {cursor}")
+        if token in ('EOL', ';'):
+            consume()
+            continue
 
-                ast['body'].append(line_ast)
+        body.append(parse_statement(classes))
 
-                input_stream = orignal_stream
-                cursor = orignal_cursor
-                cached_line = []
-        else:
-            cached_line.append(tk)
+    return {'type': 'Program', 'body': body}
 
-    return ast
-
-#input_stream = ['CONST', 'X', '=', '2', '+', '5', '*', '4']
-#cursor = 0
-#print(parse())
+input_stream = []
+cursor = 0
+print(parse())
