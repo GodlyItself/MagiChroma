@@ -163,34 +163,46 @@ def parse_variable_mutation():
         "value" : val
     }
 
-def parse_function_declaration():
-    consume() #consume what declares the function.
-    arguments = {}
-    func_name = peek()
-    consume()
-    consume('(')
-    current_param = None
+def parse_function_declaration(classes=None):
+    consume('function')
 
-    while peek() != '(':
-        if peek() == ',':
-            consume()
-        elif peek() == ':':
-            consume()
-            if current_param:
-                arguments[current_param] = peek()
-            consume()
-        else:
-            current_param = peek()
-            arguments[current_param] = None
-            consume
+    func_name = consume()
+    if not is_variable(func_name):
+        raise SyntaxError(f"Expected a function name, but found '{func_name}' at position {cursor - 1}")
+
+    consume('(')
+    arguments = {}
+
+    while peek() != ')':
+        if peek() == '':
+            raise SyntaxError(f"Unterminated parameter list for function '{func_name}'")
+
+        param_name = consume()
+        if not is_variable(param_name):
+            raise SyntaxError(f"Expected a parameter name, but found '{param_name}' at position {cursor - 1}")
+        if param_name in arguments:
+            raise SyntaxError(f"Duplicate parameter '{param_name}' in function '{func_name}'")
+
+        param_type = None
+        if peek() == ':':
+            consume(':')
+            param_type = consume()
+            if param_type not in types and param_type not in (classes or []):
+                raise SyntaxError(f"Unknown parameter type '{param_type}'")
+
+        arguments[param_name] = param_type
+
+        if peek() != ')':
+            consume(',')
 
     consume(')')
-    body = parse_block()
+    body = parse_block(classes)
+
     return {
-        "type" : "FunctionDeclaration",
-        "name" : func_name,
-        "arguments" : arguments, # Returning the full dict gives you names AND types
-        "body" : body
+        "type": "FunctionDeclaration",
+        "name": func_name,
+        "arguments": arguments,
+        "body": body
     }
 
 
