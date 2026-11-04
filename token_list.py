@@ -112,6 +112,8 @@ tokens = {
 
     #--- 10. Strings ---
     '`' : 'TOGGLE_F_STRING',
+    '"': 'DOUBLE_QUOTE',
+    "'": 'SINGLE_QUOTE',
 }
 
 keywords = {

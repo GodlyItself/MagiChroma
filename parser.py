@@ -133,7 +133,7 @@ def parse_block(classes=None):
 
     terminator = 'RBRACE' if opening == 'LBRACE' else '}'
     program = parse(terminator=terminator, classes=classes)
-    return {"type": "Scope", "body": program["body"]}
+    return {"type": "CodeBlock", "body": program["body"]}
 
 def parse_if_statement(classes=None):
     consume('IF' if peek() == 'IF' else 'if')
@@ -157,7 +157,29 @@ def parse_variable_mutation():
         "type" : "VariableMutation",
         "name" : var_name,
         "value" : val
-    } 
+    }
+
+def parse_function_declaration():
+    consume() #consume what declares the function.
+    arguments = []
+    func_name = peek()
+    consume()
+    consume()#consume '('
+    while peek() != 'RPAREN':
+        print(peek())
+        if peek() == 'COMMA':
+            consume()
+        else:
+            arguments.append(peek())
+            consume()
+    consume() # ')'
+    body = parse_block()
+    return {
+        "type" : "FunctionDeclaration",
+        "name" : func_name,
+        "arguments" : arguments,
+        "body" : body
+    }
 
 def parse_statement(classes):
     match peek():
@@ -169,6 +191,8 @@ def parse_statement(classes):
             return parse_if_statement(classes)
         case 'LBRACE' | '{':
             return parse_block(classes)
+        case 'FUNCTION' :
+            return parse_function_declaration()
         case _:
             return parse_variable_mutation()
 
@@ -196,6 +220,6 @@ def parse(terminator=None, classes=None):
 
     return {"type": "Program", "body": body}
 
-input_stream = ['X', '=', '0']
+input_stream = ['FUNCTION', 'ABC', 'LPAREN', 'HI', 'COMMA', 'BYE','RPAREN', 'LBRACE', 'LET', 'X', '=', '9', 'RBRACE']
 cursor = 0
 print(parse())
