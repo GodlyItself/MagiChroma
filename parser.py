@@ -1,5 +1,8 @@
 from typing import cast
 from token_list import *
+from pretty_print import pretty_print as pprint
+
+_token_values = {token_type: value for value, token_type in tokens.items()}
 
 # Global variables tracking active parser execution
 input_stream = []
@@ -9,7 +12,8 @@ variables = []
 def peek() -> str:
     """Look at the current token in the input stream without moving forward."""
     if cursor < len(input_stream):
-        return input_stream[cursor]
+        token = input_stream[cursor]
+        return _token_values.get(token, token)
     return ""
 
 def consume(expected_type: str = None) -> str:
@@ -127,11 +131,11 @@ def parse_variable_declaration(classes, explicity=True, const=False): #takes cla
 
 def parse_block(classes=None):
     opening = peek()
-    if opening not in ('LBRACE', '{'):
+    if opening != '{':
         raise SyntaxError(f"Expected 'LBRACE', but found '{peek()}' at position {cursor}")
     consume(opening)
 
-    terminator = 'RBRACE' if opening == 'LBRACE' else '}'
+    terminator = '}'
     program = parse(terminator=terminator, classes=classes)
     return {"type": "CodeBlock", "body": program["body"]}
 
@@ -161,25 +165,34 @@ def parse_variable_mutation():
 
 def parse_function_declaration():
     consume() #consume what declares the function.
-    arguments = []
+    arguments = {}
     func_name = peek()
     consume()
-    consume()#consume '('
-    while peek() != 'RPAREN':
-        print(peek())
-        if peek() == 'COMMA':
+    consume('(')
+    current_param = None
+
+    while peek() != '(':
+        if peek() == ',':
+            consume()
+        elif peek() == ':':
+            consume()
+            if current_param:
+                arguments[current_param] = peek()
             consume()
         else:
-            arguments.append(peek())
-            consume()
-    consume() # ')'
+            current_param = peek()
+            arguments[current_param] = None
+            consume
+
+    consume(')')
     body = parse_block()
     return {
         "type" : "FunctionDeclaration",
         "name" : func_name,
-        "arguments" : arguments,
+        "arguments" : arguments, # Returning the full dict gives you names AND types
         "body" : body
     }
+
 
 def parse_statement(classes):
     match peek():
@@ -191,7 +204,7 @@ def parse_statement(classes):
             return parse_if_statement(classes)
         case 'LBRACE' | '{':
             return parse_block(classes)
-        case 'FUNCTION' :
+        case 'FUNCTION' | 'function':
             return parse_function_declaration()
         case _:
             return parse_variable_mutation()
@@ -222,4 +235,4 @@ def parse(terminator=None, classes=None):
 
 input_stream = ['FUNCTION', 'ABC', 'LPAREN', 'HI', 'COMMA', 'BYE','RPAREN', 'LBRACE', 'LET', 'X', '=', '9', 'RBRACE']
 cursor = 0
-print(parse())
+pprint(parse())
