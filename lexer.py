@@ -43,4 +43,4 @@ def lexer(code: str):
 
     return tokens_list
 
-print(lexer('abc = "ki"'))
+#print(lexer('abc = "ki"'))

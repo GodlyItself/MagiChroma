@@ -9,6 +9,9 @@ input_stream = []
 cursor = 0
 variables = []
 
+def set_input_stream(input_stream_):
+    input_stream = input_stream_
+
 def peek() -> str:
     """Look at the current token in the input stream without moving forward."""
     if cursor < len(input_stream):
@@ -95,9 +98,9 @@ def parse_variable_declaration(classes, explicity=True, const=False): #takes cla
 
     if explicity: #For python-like variable direct declarations
         if const:
-            consume('CONST' if peek() == 'CONST' else 'const')
+            consume()
         else:
-            consume('LET' if peek() == 'LET' else 'let')
+            consume()
     else:
         pass
 
@@ -219,10 +222,17 @@ def parse_statement(classes):
         case 'FUNCTION' | 'function':
             return parse_function_declaration()
         case _:
-            return parse_variable_mutation()
-
-def parse(terminator=None, classes=None):
+            if peek() != 'Let':
+                return parse_variable_mutation()
+            elif peek() == 'Let':
+                return parse_variable_declaration(classes)
+def parse(input_=None, terminator=None, classes=None):
     global input_stream, cursor
+    if input_stream == []:
+        input_stream = input_
+    else:
+        pass
+
     classes = [] if classes is None else classes
     body = []
 
@@ -245,6 +255,6 @@ def parse(terminator=None, classes=None):
 
     return {"type": "Program", "body": body}
 
-input_stream = ['FUNCTION', 'ABC', 'LPAREN', 'HI', 'COMMA', 'BYE','RPAREN', 'LBRACE', 'LET', 'X', '=', '9', 'RBRACE']
-cursor = 0
-pprint(parse())
+#input_stream = ['FUNCTION', 'ABC', 'LPAREN', 'HI', 'COMMA', 'BYE','RPAREN', 'LBRACE', 'LET', 'X', '=', '9', 'RBRACE']
+#cursor = 0
+#pprint(parse())
