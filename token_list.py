@@ -67,6 +67,8 @@ tokens = {
     '-': 'MINUS',
     '*': 'MULTIPLY',
     '/': 'DIVIDE',
+    '//': 'INTEGER_DIVIDE',
+    '**':'POWER',
     '%': 'MODULO',
     '++': 'INCREMENT',
     '--': 'DECREMENT',
