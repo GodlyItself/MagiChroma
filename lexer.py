@@ -18,6 +18,26 @@ def lexer(code: str):
             cursor += 1
             continue
 
+        if char == '"' or char == "'":
+            quote_type = char
+            start = cursor
+            cursor += 1
+            escaped = False
+            while cursor < length:
+                current = code[cursor]
+                cursor += 1
+                if current == quote_type and not escaped:
+                    break
+                if current == "\\" and not escaped:
+                    escaped = True
+                else:
+                    escaped = False
+            else:
+                raise SyntaxError(f"Unterminated string starting at position {start}")
+
+            tokens_list.append(code[start:cursor])
+            continue
+
         # 2. Match multi-character or single-character operators
         matched_operator = False
         for op in operators:
@@ -51,20 +71,6 @@ def lexer(code: str):
                 number += code[cursor]
                 cursor += 1
             tokens_list.append(number)
-            continue
-
-        # 5. Handle Strings (since your example includes "ki")
-        if char == '"' or char == "'":
-            quote_type = char
-            string_val = char  # Keep or omit quotes based on preference
-            cursor += 1
-            while cursor < length and code[cursor] != quote_type:
-                string_val += code[cursor]
-                cursor += 1
-            if cursor < length:
-                string_val += code[cursor] # Close quote
-                cursor += 1
-            tokens_list.append(string_val)
             continue
 
         raise SyntaxError(f"Unexpected character: {char}")

@@ -1,287 +1,297 @@
-from typing import cast
-from token_list import *
-from pretty_print import pretty_print as pprint
-import sys
+from token_list import tokens, types
 
-_token_values = {token_type: value for value, token_type in tokens.items()}
 
-# Global variables tracking active parser execution
-input_stream = []
-cursor = 0
-variables = []
+_TOKEN_TEXT = {token_type: text for text, token_type in tokens.items()}
+_BINDING_POWER = {
+    "OR": 10,
+    "OR_OR": 10,
+    "AND": 20,
+    "AND_AND": 20,
+    "LESS_THAN": 35,
+    "GREATER_THAN": 35,
+    "LESS_EQUAL": 35,
+    "GREATER_EQUAL": 35,
+    "EQUAL": 35,
+    "NOT_EQUAL": 35,
+    "STRICT_EQUAL": 35,
+    "STRICT_NOT_EQUAL": 35,
+    "PLUS": 40,
+    "MINUS": 40,
+    "MULTIPLY": 50,
+    "DIVIDE": 50,
+    "INTEGER_DIVIDE": 50,
+    "MODULO": 50,
+    "POWER": 60,
+    "LPAREN": 80,
+}
 
-def set_input_stream(input_stream_):
-    input_stream = input_stream_
 
-def peek() -> str:
-    """Look at the current token in the input stream without moving forward."""
-    if cursor < len(input_stream):
-        token = input_stream[cursor]
-        return token
+def _node(node_type, **fields):
+    return {"type": node_type, **fields}
+
+
+def _peek(state):
+    if state["cursor"] < len(state["tokens"]):
+        return state["tokens"][state["cursor"]]
     return ""
 
-def consume(expected_type: str = None) -> str:
-    """Advance the cursor and return the token. Option to validate it."""
-    global cursor
-    token = peek()
-    if expected_type and token != expected_type:
-        raise SyntaxError(f"Expected '{expected_type}', but found '{token}' at position {cursor}")
-    if token != "":
-        cursor += 1
+
+def _consume(state, expected_type=None):
+    token = _peek(state)
+    if expected_type is not None and token != expected_type:
+        raise SyntaxError(
+            f"Expected '{expected_type}', but found '{token}' "
+            f"at position {state['cursor']}"
+        )
+    if token:
+        state["cursor"] += 1
     return token
 
-def is_variable(token: str) -> bool:
-    """Helper to check if a token is a valid variable name (and not a language keyword/operator)."""
+
+def _is_identifier(token):
     return token.isidentifier() and token not in tokens
 
-def get_binding_power(token: str) -> int:
-    """Maps operators to their precedence strengths. Numbers/Variables return 0."""
-    binding_power = {
-        'OR': 10,
-        'AND': 20,
-        'LESS_THAN': 35, 'GREATER_THAN': 35, 'LESS_EQUAL': 35, 'GREATER_EQUAL': 35,
-        'EQUAL': 35, 'NOT_EQUAL': 35, 'STRICT_EQUAL': 35, 'STRICT_NOT_EQUAL': 35,
-        'PLUS': 40, 'MINUS': 40,
-        'MULTIPLY': 50, 'DIVIDE': 50, 'INTEGER_DIVIDE': 50, 'MODULO': 50,
-        'POWER': 60,
-        'LPAREN': 80  # High priority to instantly bind function names to their arguments
-    }
-    return binding_power.get(token, 0)
 
-def is_f_string(token):
-    return token.startswith('f"') or token.startswith("f'")
+def _parse_statements(state, terminator=None):
+    body = []
+    while True:
+        token = _peek(state)
+        if terminator is not None and token == terminator:
+            _consume(state, terminator)
+            return body
+        if not token:
+            if terminator is not None:
+                raise SyntaxError(
+                    f"Unterminated block starting before position {state['cursor']}"
+                )
+            return body
+        if token in ("EOL", "SEMICOLON"):
+            _consume(state)
+            continue
+        if token == "RBRACE":
+            raise SyntaxError(f"Unexpected 'RBRACE' at position {state['cursor']}")
+        body.append(_parse_statement(state))
 
-def pratt_parse(current_bp: int = 0):
-    """Parses expressions using Top-Down Operator Precedence."""
-    global cursor
 
-    token = consume()
+def _parse_block(state):
+    _consume(state, "LBRACE")
+    return _node("BlockStatement", body=_parse_statements(state, "RBRACE"))
 
-    if token == 'NOT':
-        left = ('Unary Operation', 'not', pratt_parse(30))
-    elif token in ['PLUS', 'MINUS']:
-        left = ['Unary Operation', token, pratt_parse(70)]
-    elif token == 'LPAREN':
-        left = pratt_parse(0)
-        consume() #Consume RPAREN
-    elif token.isdigit():
-        left = ['Numerical Literal', int(token)]
-    elif is_variable(token):
-        left = ['Variable', token]
-    elif is_f_string(token):
-        left = parse_if_statement()
+
+def _parse_statement(state):
+    match _peek(state):
+        case "LET" | "CONST":
+            return _parse_variable_declaration(state)
+        case "IF":
+            return _parse_if_statement(state)
+        case "LBRACE":
+            return _parse_block(state)
+        case "FUNCTION":
+            return _parse_function_declaration(state)
+        case "FOR":
+            return _parse_for_statement(state)
+        case _:
+            return _parse_expression_statement(state)
+
+
+def _parse_variable_declaration(state):
+    kind = _consume(state)
+    name = _consume(state)
+    if not _is_identifier(name):
+        raise SyntaxError(
+            f"Expected a variable name, but found '{name}' "
+            f"at position {state['cursor'] - 1}"
+        )
+
+    annotation = None
+    if _peek(state) == "COLON":
+        _consume(state, "COLON")
+        annotation = _consume(state)
+        if annotation not in types:
+            raise SyntaxError(f"Unknown variable type '{annotation}'")
+
+    initializer = None
+    if _peek(state) == "ASSIGN":
+        _consume(state, "ASSIGN")
+        initializer = _parse_expression(state)
+
+    return _node(
+        "VariableDeclaration",
+        kind=_TOKEN_TEXT[kind],
+        id=_node("Identifier", name=name),
+        annotation=annotation,
+        init=initializer,
+    )
+
+
+def _parse_if_statement(state):
+    _consume(state, "IF")
+    test = _parse_expression(state)
+    consequent = _parse_block(state)
+
+    elif_branches = []
+    while _peek(state) == "ELIF":
+        _consume(state, "ELIF")
+        elif_branches.append(
+            (_parse_expression(state), _parse_block(state))
+        )
+
+    if _peek(state) == "ELSE":
+        _consume(state, "ELSE")
+        alternate = _parse_block(state)
     else:
-        raise SyntaxError(f"Unexpected token starting an expression: '{token}' at position {cursor-1}") 
+        alternate = None
 
-    while current_bp < get_binding_power(peek()):
-        if peek() in comparisons.values():
-            break
-        
-        operator = consume()
+    for elif_test, elif_body in reversed(elif_branches):
+        alternate = _node(
+            "IfStatement",
+            test=elif_test,
+            consequent=elif_body,
+            alternate=alternate,
+        )
 
-        if operator == 'LPAREN':
-            args = []
-            if peek() != 'RPAREN':
-                args.append(pratt_parse(0))
-                while peek() == 'COMMA':
-                    consume('COMMA')  # Skip the comma token
-                    args.append(pratt_parse(0))
-            consume('RPAREN') 
-            left = ["Call", left, args]
-        else:
-            next_bp = get_binding_power(operator)
-            if operator == 'POWER':
-                next_bp -= 1
+    return _node(
+        "IfStatement",
+        test=test,
+        consequent=consequent,
+        alternate=alternate,
+    )
 
-            right = pratt_parse(next_bp)
-            left = ["BinaryOp", operator, left, right]
+
+def _parse_expression_statement(state):
+    expression = _parse_expression(state)
+    if _peek(state) == "ASSIGN":
+        if expression["type"] != "Identifier":
+            raise SyntaxError("Only variables can be assigned to")
+        _consume(state, "ASSIGN")
+        return _node(
+            "AssignmentStatement",
+            target=expression,
+            value=_parse_expression(state),
+        )
+    return _node("ExpressionStatement", expression=expression)
+
+
+def _parse_function_declaration(state):
+    _consume(state, "FUNCTION")
+    name = _consume(state)
+    if not _is_identifier(name):
+        raise SyntaxError(
+            f"Expected a function name, but found '{name}' "
+            f"at position {state['cursor'] - 1}"
+        )
+
+    _consume(state, "LPAREN")
+    parameters = []
+    while _peek(state) != "RPAREN":
+        if not _peek(state):
+            raise SyntaxError(f"Unterminated parameter list for function '{name}'")
+        parameter_name = _consume(state)
+        if not _is_identifier(parameter_name):
+            raise SyntaxError(
+                f"Expected a parameter name, but found '{parameter_name}' "
+                f"at position {state['cursor'] - 1}"
+            )
+        if any(
+            parameter["id"]["name"] == parameter_name for parameter in parameters
+        ):
+            raise SyntaxError(
+                f"Duplicate parameter '{parameter_name}' in function '{name}'"
+            )
+
+        annotation = None
+        if _peek(state) == "COLON":
+            _consume(state, "COLON")
+            annotation = _consume(state)
+            if annotation not in types:
+                raise SyntaxError(f"Unknown parameter type '{annotation}'")
+
+        parameters.append(
+            _node(
+                "Parameter",
+                id=_node("Identifier", name=parameter_name),
+                annotation=annotation,
+            )
+        )
+        if _peek(state) != "RPAREN":
+            _consume(state, "COMMA")
+
+    _consume(state, "RPAREN")
+    return _node(
+        "FunctionDeclaration",
+        id=_node("Identifier", name=name),
+        params=parameters,
+        body=_parse_block(state),
+    )
+
+
+def _parse_for_statement(state):
+    _consume(state, "FOR")
+    return _node(
+        "ForStatement",
+        test=_parse_expression(state),
+        body=_parse_block(state),
+    )
+
+
+def _parse_expression(state, minimum_binding_power=0):
+    token = _consume(state)
+    if not token:
+        raise SyntaxError(f"Expected an expression at position {state['cursor']}")
+
+    if token == "NOT":
+        left = _node(
+            "UnaryExpression",
+            operator="not",
+            argument=_parse_expression(state, 30),
+        )
+    elif token in ("PLUS", "MINUS"):
+        left = _node(
+            "UnaryExpression",
+            operator=_TOKEN_TEXT[token],
+            argument=_parse_expression(state, 70),
+        )
+    elif token == "LPAREN":
+        left = _parse_expression(state)
+        _consume(state, "RPAREN")
+    elif token.isdigit():
+        left = _node("NumericLiteral", value=int(token))
+    elif token[:1] in ('"', "'") and token[-1:] == token[:1]:
+        left = _node("StringLiteral", value=token[1:-1])
+    elif _is_identifier(token):
+        left = _node("Identifier", name=token)
+    else:
+        raise SyntaxError(
+            f"Unexpected token starting an expression: '{token}' "
+            f"at position {state['cursor'] - 1}"
+        )
+
+    while minimum_binding_power < _BINDING_POWER.get(_peek(state), 0):
+        operator = _consume(state)
+        if operator == "LPAREN":
+            arguments = []
+            if _peek(state) != "RPAREN":
+                arguments.append(_parse_expression(state))
+                while _peek(state) == "COMMA":
+                    _consume(state, "COMMA")
+                    arguments.append(_parse_expression(state))
+            _consume(state, "RPAREN")
+            left = _node("CallExpression", callee=left, arguments=arguments)
+            continue
+
+        binding_power = _BINDING_POWER[operator]
+        right_binding_power = binding_power - (operator == "POWER")
+        right = _parse_expression(state, right_binding_power)
+        left = _node(
+            "BinaryExpression",
+            operator=_TOKEN_TEXT[operator],
+            left=left,
+            right=right,
+        )
 
     return left
 
-def parse_conditional():
-    left_hand_side = pratt_parse()
-    consume()
-    right_hand_side = pratt_parse()
-    return {
-        "type" : "ConditionalExpression",
-        "body": {
-            "left" : left_hand_side,
-            "right" : right_hand_side,
-        }
-    }
 
-def parse_variable_declaration(classes, explicity=True, const=False): #takes classes for type checking.
-
-    if explicity: #For python-like variable direct declarations
-        if const:
-            consume()
-        else:
-            consume()
-    else:
-        pass
-
-    predefined = False
-    var_name = consume() # Grab variable name
-    type_ = None
-
-    if peek() == 'COLON':
-        consume() #Consume for type dec
-        type_ = consume()
-
-        if type_ in types or type_ in classes:
-            pass
-        else:
-            raise SyntaxError(f'{type_} is unknown.')
-
-    if peek() == 'ASSIGN':
-        consume('ASSIGN')
-        predefined = True
-        value_expr = pratt_parse(0)
-                    
-    return   {
-        "type": "VariableDeclaration",
-        "body": {
-            "variable": var_name,
-            "mutability": const,
-            "type": type_ if type_ in types or type_ in classes else "any",
-            "value": value_expr if predefined else None
-            }
-        }
-
-def parse_block(classes=None):
-    opening = peek()
-    if opening != 'LBRACE':
-        raise SyntaxError(f"Expected 'LBRACE', but found '{peek()}' at position {cursor}")
-    consume(opening)
-
-    terminator = 'RBRACE'
-    program = parse(terminator=terminator, classes=classes)
-    return {"type": "CodeBlock", "body": program["body"]}
-
-def parse_if_statement(classes=None):
-    consume('IF')
-    condition = parse_conditional() ##Fixed this.
-    body = parse_block(classes)
-    return {
-        "type": "IfStatement",
-        "condition": condition,
-        "body": body
-    }
-
-def parse_variable_mutation():
-    var_name = peek()
-    consume() #registered and ate variable name
-
-    consume() #ate '='
-
-    val = pratt_parse()
-
-    return {
-        "type" : "VariableMutation",
-        "name" : var_name,
-        "value" : val
-    }
-
-def parse_function_declaration(classes=None):
-    consume('FUNCTION')
-
-    func_name = consume()
-    if not is_variable(func_name):
-        raise SyntaxError(f"Expected a function name, but found '{func_name}' at position {cursor - 1}")
-
-    consume('LPAREN')
-    arguments = {}
-
-    while peek() != 'RPAREN':
-        if peek() == '': # I lowkey don't remember why I did this but changing/removing it would take time/break stuff so I'll leave it.
-            raise SyntaxError(f"Unterminated parameter list for function '{func_name}'")
-
-        param_name = consume()
-        if not is_variable(param_name):
-            raise SyntaxError(f"Expected a parameter name, but found '{param_name}' at position {cursor - 1}")
-        if param_name in arguments:
-            raise SyntaxError(f"Duplicate parameter '{param_name}' in function '{func_name}'")
-
-        param_type = None
-        if peek() == 'COLON':
-            consume('COLON')
-            param_type = consume()
-            if param_type not in types and param_type not in (classes or []):
-                raise SyntaxError(f"Unknown parameter type '{param_type}'")
-
-        arguments[param_name] = param_type
-
-        if peek() != 'RPAREN':
-            consume('COMMA')
-
-    consume('RPAREN')
-    body = parse_block(classes)
-
-    return {
-        "type": "FunctionDeclaration",
-        "name": func_name,
-        "arguments": arguments,
-        "body": body
-    }
-
-def parse_for_loop():
-    consume('FOR')
-
-    condition = parse_conditional()
-    stuff = parse_block()
-
-    return {
-        "type" : "ForLoop",
-        "condition" : condition,
-        "body" : stuff
-    }
-
-def parse_statement(classes):
-    match peek():
-        case 'LET':
-            return parse_variable_declaration(classes)
-        case 'CONST':
-            return parse_variable_declaration(classes, const=True)
-        case 'IF':
-            return parse_if_statement(classes)
-        case 'LBRACE':
-            return parse_block(classes)
-        case 'FUNCTION':
-            return parse_function_declaration() 
-        case 'FOR':
-            return parse_for_loop()
-        case _:
-            return parse_variable_mutation()
-
-def parse(input_=None, terminator=None, classes=None):
-    global input_stream, cursor
-    if input_stream == []:
-        input_stream = input_
-    else:
-        pass
-
-    classes = [] if classes is None else classes
-    body = []
-
-    while True:
-        token = peek()
-        if token == terminator and terminator is not None:
-            consume(terminator)
-            break
-        if token == '': #Again, Empty String for Who knows what but works. i needa write more of comments
-            if terminator is not None:
-                raise SyntaxError(f"Unterminated block starting before position {cursor}")
-            break
-        if token in ('RBRACE'):
-            raise SyntaxError(f"Unexpected 'RBRACE' at position {cursor}")
-        if token in ('EOL', 'SEMICOLON'):
-            consume()
-            continue
-
-        body.append(parse_statement(classes))
-
-    return {"type": "Program", "body": body}
-
-#input_stream = ['FUNCTION', 'ABC', 'LPAREN', 'HI', 'COMMA', 'BYE','RPAREN', 'LBRACE', 'LET', 'X', '=', '9', 'RBRACE']
-#cursor = 0
-#pprint(parse())
+def parse(input_):
+    state = {"tokens": input_, "cursor": 0}
+    return _node("Program", body=_parse_statements(state))
