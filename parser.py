@@ -160,7 +160,7 @@ def parse_block(classes=None):
 
 def parse_if_statement(classes=None):
     consume('IF')
-    condition = pratt_parse()
+    condition = parse_conditional() ##Fixed this.
     body = parse_block(classes)
     return {
         "type": "IfStatement",
