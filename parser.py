@@ -76,7 +76,7 @@ def pratt_parse(current_bp: int = 0):
     while current_bp < get_binding_power(peek()):
         if peek() in comparisons.values():
             break
-        ##So basically a bug here took me like 45 min, i was doing the above if-statement after line 80's contents.
+        
         operator = consume()
 
         if operator == 'LPAREN':
@@ -247,7 +247,7 @@ def parse_statement(classes):
         case 'LBRACE':
             return parse_block(classes)
         case 'FUNCTION':
-            return parse_function_declaration() ##More stuff like =>, etc will be added at some point.
+            return parse_function_declaration() 
         case 'FOR':
             return parse_for_loop()
         case _:
