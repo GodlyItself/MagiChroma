@@ -1,6 +1,7 @@
 from typing import cast
 from token_list import *
 from pretty_print import pretty_print as pprint
+import sys
 
 _token_values = {token_type: value for value, token_type in tokens.items()}
 
@@ -73,6 +74,9 @@ def pratt_parse(current_bp: int = 0):
         raise SyntaxError(f"Unexpected token starting an expression: '{token}' at position {cursor-1}") 
 
     while current_bp < get_binding_power(peek()):
+        if peek() in comparisons.values():
+            break
+        ##So basically a bug here took me like 45 min, i was doing the above if-statement after line 80's contents.
         operator = consume()
 
         if operator == 'LPAREN':
@@ -93,6 +97,18 @@ def pratt_parse(current_bp: int = 0):
             left = ["BinaryOp", operator, left, right]
 
     return left
+
+def parse_conditional():
+    left_hand_side = pratt_parse()
+    consume()
+    right_hand_side = pratt_parse()
+    return {
+        "type" : "ConditionalExpression",
+        "body": {
+            "left" : left_hand_side,
+            "right" : right_hand_side,
+        }
+    }
 
 def parse_variable_declaration(classes, explicity=True, const=False): #takes classes for type checking.
 
@@ -208,9 +224,19 @@ def parse_function_declaration(classes=None):
         "body": body
     }
 
+def parse_for_loop():
+    consume('FOR')
+
+    condition = parse_conditional()
+    stuff = parse_block()
+
+    return {
+        "type" : "ForLoop",
+        "condition" : condition,
+        "body" : stuff
+    }
 
 def parse_statement(classes):
-    print(peek())
     match peek():
         case 'LET':
             return parse_variable_declaration(classes)
@@ -221,7 +247,9 @@ def parse_statement(classes):
         case 'LBRACE':
             return parse_block(classes)
         case 'FUNCTION':
-            return parse_function_declaration()
+            return parse_function_declaration() ##More stuff like =>, etc will be added at some point.
+        case 'FOR':
+            return parse_for_loop()
         case _:
             return parse_variable_mutation()
 
