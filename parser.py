@@ -288,7 +288,7 @@ def parse_while_loop():
     return statement
 
 
-def parse_expression():
+def parse_expression(condition=False):
     state = _state()
     token = consume()
 
@@ -341,7 +341,7 @@ def parse_expression():
 
     elif is_identifier(token):
         left = node("Identifier", name=token)
-        
+
     else:
         raise SyntaxError(
             f"Unexpected token starting an expression: '{token}' "
@@ -349,11 +349,15 @@ def parse_expression():
         )
 
     while state["binding_power_stack"][-1] < BINDING_POWER.get(peek(), 0):
+
         operator = consume()
+
         if operator == "LPAREN":
             arguments = []
+
             if peek() != "RPAREN":
                 state["binding_power_stack"].append(0)
+
                 try:
                     argument = parse_expression()
                     arguments.append(argument)
@@ -363,6 +367,7 @@ def parse_expression():
                         arguments.append(argument)
                 finally:
                     state["binding_power_stack"].pop()
+
             expect("RPAREN")
             left = node("CallExpression", callee=left, arguments=arguments)
             continue
@@ -370,15 +375,25 @@ def parse_expression():
         binding_power = BINDING_POWER[operator]
         right_binding_power = binding_power - (operator == "POWER")
         state["binding_power_stack"].append(right_binding_power)
+
         try:
             right = parse_expression()
         finally:
             state["binding_power_stack"].pop()
+            
         left = node(
             "BinaryExpression",
             operator=TOKEN_TEXT[operator],
             left=left,
             right=right,
+        )
+
+    if condition and left["type"] == "Identifier":
+        left = node(
+            "BinaryExpression",
+            operator="==",
+            left=left,
+            right=node("BooleanLiteral", value=True),
         )
 
     return left
