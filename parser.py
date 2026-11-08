@@ -1,8 +1,8 @@
 from token_list import tokens, types
 
 
-_TOKEN_TEXT = {token_type: text for text, token_type in tokens.items()}
-_BINDING_POWER = {
+TOKEN_TEXT = {token_type: text for text, token_type in tokens.items()}
+BINDING_POWER = {
     "OR": 10,
     "OR_OR": 10,
     "AND": 20,
@@ -26,18 +26,18 @@ _BINDING_POWER = {
 }
 
 
-def _node(node_type, **fields):
+def node(node_type, **fields):
     return {"type": node_type, **fields}
 
 
-def _peek(state):
+def peek(state):
     if state["cursor"] < len(state["tokens"]):
         return state["tokens"][state["cursor"]]
     return ""
 
 
-def _consume(state, expected_type=None):
-    token = _peek(state)
+def consume(state, expected_type=None):
+    token = peek(state)
     if expected_type is not None and token != expected_type:
         raise SyntaxError(
             f"Expected '{expected_type}', but found '{token}' "
@@ -48,16 +48,16 @@ def _consume(state, expected_type=None):
     return token
 
 
-def _is_identifier(token):
+def is_identifier(token):
     return token.isidentifier() and token not in tokens
 
 
-def _parse_statements(state, terminator=None):
+def parse_statements(state, terminator=None):
     body = []
     while True:
-        token = _peek(state)
+        token = peek(state)
         if terminator is not None and token == terminator:
-            _consume(state, terminator)
+            consume(state, terminator)
             return body
         if not token:
             if terminator is not None:
@@ -66,91 +66,91 @@ def _parse_statements(state, terminator=None):
                 )
             return body
         if token in ("EOL", "SEMICOLON"):
-            _consume(state)
+            consume(state)
             continue
         if token == "RBRACE":
             raise SyntaxError(f"Unexpected 'RBRACE' at position {state['cursor']}")
-        body.append(_parse_statement(state))
+        body.append(parse_statement(state))
 
 
-def _parse_block(state):
-    _consume(state, "LBRACE")
-    return _node("BlockStatement", body=_parse_statements(state, "RBRACE"))
+def parse_block(state):
+    consume(state, "LBRACE")
+    return node("BlockStatement", body=parse_statements(state, "RBRACE"))
 
 
-def _parse_statement(state):
-    match _peek(state):
+def parse_statement(state):
+    match peek(state):
         case "LET" | "CONST":
-            return _parse_variable_declaration(state)
+            return parse_variable_declaration(state)
         case "IF":
-            return _parse_if_statement(state)
+            return parse_if_statement(state)
         case "LBRACE":
-            return _parse_block(state)
+            return parse_block(state)
         case "FUNCTION":
-            return _parse_function_declaration(state)
+            return parse_function_declaration(state)
         case "FOR":
-            return _parse_for_statement(state)
+            return parse_for_statement(state)
         case _:
-            return _parse_expression_statement(state)
+            return parse_expression_statement(state)
 
 
-def _parse_variable_declaration(state):
-    kind = _consume(state)
-    name = _consume(state)
-    if not _is_identifier(name):
+def parse_variable_declaration(state):
+    kind = consume(state)
+    name = consume(state)
+    if not is_identifier(name):
         raise SyntaxError(
             f"Expected a variable name, but found '{name}' "
             f"at position {state['cursor'] - 1}"
         )
 
     annotation = None
-    if _peek(state) == "COLON":
-        _consume(state, "COLON")
-        annotation = _consume(state)
+    if peek(state) == "COLON":
+        consume(state, "COLON")
+        annotation = consume(state)
         if annotation not in types:
             raise SyntaxError(f"Unknown variable type '{annotation}'")
 
     initializer = None
-    if _peek(state) == "ASSIGN":
-        _consume(state, "ASSIGN")
-        initializer = _parse_expression(state)
+    if peek(state) == "ASSIGN":
+        consume(state, "ASSIGN")
+        initializer = parse_expression(state)
 
-    return _node(
+    return  node(
         "VariableDeclaration",
-        kind=_TOKEN_TEXT[kind],
-        id=_node("Identifier", name=name),
+        kind= TOKEN_TEXT[kind],
+        id= node("Identifier", name=name),
         annotation=annotation,
         init=initializer,
     )
 
 
-def _parse_if_statement(state):
-    _consume(state, "IF")
-    test = _parse_expression(state)
-    consequent = _parse_block(state)
+def parse_if_statement(state):
+    consume(state, "IF")
+    test = parse_expression(state)
+    consequent = parse_block(state)
 
     elif_branches = []
-    while _peek(state) == "ELIF":
-        _consume(state, "ELIF")
+    while peek(state) == "ELIF":
+        consume(state, "ELIF")
         elif_branches.append(
-            (_parse_expression(state), _parse_block(state))
+            (parse_expression(state), parse_block(state))
         )
 
-    if _peek(state) == "ELSE":
-        _consume(state, "ELSE")
-        alternate = _parse_block(state)
+    if peek(state) == "ELSE":
+        consume(state, "ELSE")
+        alternate = parse_block(state)
     else:
         alternate = None
 
     for elif_test, elif_body in reversed(elif_branches):
-        alternate = _node(
+        alternate = node(
             "IfStatement",
             test=elif_test,
             consequent=elif_body,
             alternate=alternate,
         )
 
-    return _node(
+    return node(
         "IfStatement",
         test=test,
         consequent=consequent,
@@ -158,36 +158,36 @@ def _parse_if_statement(state):
     )
 
 
-def _parse_expression_statement(state):
-    expression = _parse_expression(state)
-    if _peek(state) == "ASSIGN":
+def parse_expression_statement(state):
+    expression = parse_expression(state)
+    if peek(state) == "ASSIGN":
         if expression["type"] != "Identifier":
             raise SyntaxError("Only variables can be assigned to")
-        _consume(state, "ASSIGN")
-        return _node(
+        consume(state, "ASSIGN")
+        return node(
             "AssignmentStatement",
             target=expression,
-            value=_parse_expression(state),
+            value=parse_expression(state),
         )
-    return _node("ExpressionStatement", expression=expression)
+    return node("ExpressionStatement", expression=expression)
 
 
-def _parse_function_declaration(state):
-    _consume(state, "FUNCTION")
-    name = _consume(state)
-    if not _is_identifier(name):
+def parse_function_declaration(state):
+    consume(state, "FUNCTION")
+    name = consume(state)
+    if not  is_identifier(name):
         raise SyntaxError(
             f"Expected a function name, but found '{name}' "
             f"at position {state['cursor'] - 1}"
         )
 
-    _consume(state, "LPAREN")
+    consume(state, "LPAREN")
     parameters = []
-    while _peek(state) != "RPAREN":
-        if not _peek(state):
+    while  peek(state) != "RPAREN":
+        if not  peek(state):
             raise SyntaxError(f"Unterminated parameter list for function '{name}'")
-        parameter_name = _consume(state)
-        if not _is_identifier(parameter_name):
+        parameter_name =  consume(state)
+        if not  is_identifier(parameter_name):
             raise SyntaxError(
                 f"Expected a parameter name, but found '{parameter_name}' "
                 f"at position {state['cursor'] - 1}"
@@ -200,91 +200,91 @@ def _parse_function_declaration(state):
             )
 
         annotation = None
-        if _peek(state) == "COLON":
-            _consume(state, "COLON")
-            annotation = _consume(state)
+        if peek(state) == "COLON":
+            consume(state, "COLON")
+            annotation = consume(state)
             if annotation not in types:
                 raise SyntaxError(f"Unknown parameter type '{annotation}'")
 
         parameters.append(
-            _node(
+            node(
                 "Parameter",
-                id=_node("Identifier", name=parameter_name),
+                id=node("Identifier", name=parameter_name),
                 annotation=annotation,
             )
         )
-        if _peek(state) != "RPAREN":
-            _consume(state, "COMMA")
+        if peek(state) != "RPAREN":
+            consume(state, "COMMA")
 
-    _consume(state, "RPAREN")
-    return _node(
+    consume(state, "RPAREN")
+    return node(
         "FunctionDeclaration",
-        id=_node("Identifier", name=name),
-        params=parameters,
-        body=_parse_block(state),
+        id= node("Identifier", name=name),
+        params= parameters,
+        body= parse_block(state),
     )
 
 
-def _parse_for_statement(state):
-    _consume(state, "FOR")
-    return _node(
+def parse_for_statement(state):
+    consume(state, "FOR")
+    return node(
         "ForStatement",
-        test=_parse_expression(state),
-        body=_parse_block(state),
+        test=parse_expression(state),
+        body= parse_block(state),
     )
 
 
-def _parse_expression(state, minimum_binding_power=0):
-    token = _consume(state)
+def parse_expression(state, minimum_binding_power=0):
+    token = consume(state)
     if not token:
         raise SyntaxError(f"Expected an expression at position {state['cursor']}")
 
     if token == "NOT":
-        left = _node(
+        left = node(
             "UnaryExpression",
             operator="not",
-            argument=_parse_expression(state, 30),
+            argument= parse_expression(state, 30),
         )
     elif token in ("PLUS", "MINUS"):
-        left = _node(
+        left = node(
             "UnaryExpression",
-            operator=_TOKEN_TEXT[token],
-            argument=_parse_expression(state, 70),
+            operator= TOKEN_TEXT[token],
+            argument= parse_expression(state, 70),
         )
     elif token == "LPAREN":
-        left = _parse_expression(state)
-        _consume(state, "RPAREN")
+        left = parse_expression(state)
+        consume(state, "RPAREN")
     elif token.isdigit():
-        left = _node("NumericLiteral", value=int(token))
+        left = node("NumericLiteral", value=int(token))
     elif token[:1] in ('"', "'") and token[-1:] == token[:1]:
-        left = _node("StringLiteral", value=token[1:-1])
-    elif _is_identifier(token):
-        left = _node("Identifier", name=token)
+        left = node("StringLiteral", value=token[1:-1])
+    elif is_identifier(token):
+        left = node("Identifier", name=token)
     else:
         raise SyntaxError(
             f"Unexpected token starting an expression: '{token}' "
             f"at position {state['cursor'] - 1}"
         )
 
-    while minimum_binding_power < _BINDING_POWER.get(_peek(state), 0):
-        operator = _consume(state)
+    while minimum_binding_power < BINDING_POWER.get(peek(state), 0):
+        operator = consume(state)
         if operator == "LPAREN":
             arguments = []
-            if _peek(state) != "RPAREN":
-                arguments.append(_parse_expression(state))
-                while _peek(state) == "COMMA":
-                    _consume(state, "COMMA")
-                    arguments.append(_parse_expression(state))
-            _consume(state, "RPAREN")
-            left = _node("CallExpression", callee=left, arguments=arguments)
+            if peek(state) != "RPAREN":
+                arguments.append(parse_expression(state))
+                while peek(state) == "COMMA":
+                    consume(state, "COMMA")
+                    arguments.append(parse_expression(state))
+            consume(state, "RPAREN")
+            left = node("CallExpression", callee=left, arguments=arguments)
             continue
 
-        binding_power = _BINDING_POWER[operator]
+        binding_power = BINDING_POWER[operator]
         right_binding_power = binding_power - (operator == "POWER")
-        right = _parse_expression(state, right_binding_power)
-        left = _node(
+        right = parse_expression(state, right_binding_power)
+        left = node(
             "BinaryExpression",
-            operator=_TOKEN_TEXT[operator],
+            operator= TOKEN_TEXT[operator],
             left=left,
             right=right,
         )
@@ -294,4 +294,4 @@ def _parse_expression(state, minimum_binding_power=0):
 
 def parse(input_):
     state = {"tokens": input_, "cursor": 0}
-    return _node("Program", body=_parse_statements(state))
+    return node("Program", body=parse_statements(state))
