@@ -1,5 +1,5 @@
 # MAGICHROMA
 ## BY GODLYITSELF
 
-## REMOVED THE _ NOTATION
-Yes i hadn't seen it. but now its removed.
+## R E W R I T E   I N   L U A J I T
+U read it right. im dipping python now.
