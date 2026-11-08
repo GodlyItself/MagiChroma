@@ -14,7 +14,7 @@ try:
     from pretty_print import pretty_print as pprint
     install(show_locals=True)
 
-    input_stream = "while x  { let a = 9}"
+    input_stream = "try { let x == 2} catch  { y = 2}"
     print(lexer.lexer(input_stream))
     pprint(parser.parse(lexer.lexer(input_stream)))
 except KeyboardInterrupt:

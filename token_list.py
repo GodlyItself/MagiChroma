@@ -9,14 +9,14 @@ tokens = {
     'default': 'DEFAULT',
     'delete': 'DELETE',
     'do': 'DO',
-    'else': 'ELSE',
-    'elif': 'ELIF',
+    'else': 'ELSE', #done
+    'elif': 'ELIF', #done
     'export': 'EXPORT',
     'extends': 'EXTENDS',
     'finally': 'FINALLY',
     'for': 'FOR',
-    'function': 'FUNCTION',
-    'if': 'IF',
+    'function': 'FUNCTION', #done partial
+    'if': 'IF', #done
     'import': 'IMPORT',
     'in': 'IN',
     'instanceof': 'INSTANCEOF',
@@ -30,7 +30,7 @@ tokens = {
     'typeof': 'TYPEOF',
     'var': 'VAR',
     'void': 'VOID',
-    'while': 'WHILE',
+    'while': 'WHILE', #done
     'with': 'WITH',
     'yield': 'YIELD',
     'enum': 'ENUM',
@@ -39,14 +39,14 @@ tokens = {
     # --- 2. Strict Mode & Future Reserved Words ---
     'implements': 'IMPLEMENTS',
     'interface': 'INTERFACE',
-    'let': 'LET',
+    'let': 'LET', #done
     'package': 'PACKAGE',
     'private': 'PRIVATE',
     'protected': 'PROTECTED',
     'public': 'PUBLIC',
     'static': 'STATIC',
 
-    # --- 3. Python-Specific Logical Keywords ---
+    # --- 3. Python-Specific Logical Keywords --- #done
     'not': 'NOT',
     'or': 'OR',
     'and': 'AND',
@@ -58,11 +58,11 @@ tokens = {
     ')': 'RPAREN',
     '[': 'LBRACK',
     ']': 'RBRACK',
-    '.': 'DOT',
+    '.': 'DOT', #left due to classes
     ',': 'COMMA',
     ';': 'SEMICOLON',
 
-    # --- 5. Arithmetic & Update Operators ---
+    # --- 5. Arithmetic & Update Operators --- #done
     '+': 'PLUS',
     '-': 'MINUS',
     '*': 'MULTIPLY',
@@ -73,7 +73,7 @@ tokens = {
     '++': 'INCREMENT',
     '--': 'DECREMENT',
 
-    # --- 6. Relational & Comparison Operators ---
+    # --- 6. Relational & Comparison Operators --- #done
     '<': 'LESS_THAN',
     '>': 'GREATER_THAN',
     '<=': 'LESS_EQUAL',
@@ -83,7 +83,7 @@ tokens = {
     '===': 'STRICT_EQUAL',
     '!==': 'STRICT_NOT_EQUAL',
 
-    # --- 7. Logical & Bitwise Operators ---
+    # --- 7. Logical & Bitwise Operators --- #?
     '&': 'AMPERSAND',
     '|': 'PIPE',
     '^': 'CARET',
@@ -94,7 +94,7 @@ tokens = {
     '?': 'QUESTION',
     ':': 'COLON',
 
-    # --- 8. Assignment Operators ---
+    # --- 8. Assignment Operators --- #done
     '=': 'ASSIGN',
     '+=': 'PLUS_ASSIGN',
     '-=': 'MINUS_ASSIGN',

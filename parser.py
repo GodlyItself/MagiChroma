@@ -119,6 +119,8 @@ def parse_statement():
             statement = parse_for_statement()
         case "WHILE":
             statement = parse_while_loop() ##good 'ol days
+        case "TRY" :
+            statement = parse_try_catch()
         case _:
             statement = parse_expression_statement()
     return statement
@@ -287,6 +289,33 @@ def parse_while_loop():
     )
     return statement
 
+def parse_try_catch():
+    print('try catch')
+    expect("TRY")
+    try_body = parse_block()
+    catch_body = {}
+
+    if peek() == "CATCH":
+        expect("CATCH") ##Dumb ikr
+        if peek() != "LBRACE":
+            consume()
+            condition_catch = parse_expression()
+            condition_body = parse_block()
+            catch_body[condition_catch] = condition_body
+        else:
+            ##btw i had put a `consume` here and wrote a random comment on what it did, it basically ate lbrace, and ofc gave error. saved so many hours!
+            condition_body = parse_block()
+            catch_body["catch"] = condition_body
+    else:
+        catch_body = {}
+    
+    statement = node(
+        "TryStatement",
+        try_body=try_body,
+        catch_statements=catch_body
+    )
+
+    return statement
 
 def parse_expression(condition=False):
     state = _state()

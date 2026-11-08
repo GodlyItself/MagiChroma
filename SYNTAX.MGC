@@ -1,0 +1,27 @@
+//statements
+...;
+... //explicit enough
+
+//variable declaration
+let variable = value
+let variable : type = value
+let variable : type
+variable : type = value
+const variable = value
+const variable : type = value
+const variable : type
+
+//If statements
+if lhs == rhs {
+    ...
+}
+
+if lhs == rhs {
+    ...
+} elif lhs == rhs {
+    ...
+} else {
+    ...
+}
+
+if lhs {...} //if lhs is not False or None.
