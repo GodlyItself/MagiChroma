@@ -27,7 +27,7 @@ BINDING_POWER = {
     "LPAREN": 80,
 }
 
-_parser_state = ContextVar("parser_state", default=None)
+_parser_state = ContextVar("parser_state", default=None) ##like wth is this?
 
 
 def _state():
@@ -117,6 +117,8 @@ def parse_statement():
             statement = parse_function_declaration()
         case "FOR":
             statement = parse_for_statement()
+        case "WHILE":
+            statement = parse_while_loop() ##good 'ol days
         case _:
             statement = parse_expression_statement()
     return statement
@@ -275,50 +277,71 @@ def parse_for_statement():
 
 
 def parse_while_loop():
-    ...
+    expect("WHILE")
+    test = parse_expression()
+    body = parse_block()
+    statement = node(
+        "WhileStatement",
+        test=test,
+        body=body, ##I SWEAR TO GOD ONLY HAD I BRANCHED
+    )
+    return statement
 
 
 def parse_expression():
     state = _state()
     token = consume()
+
     if not token:
         raise SyntaxError(f"Expected an expression at position {state['cursor']}")
 
     if token == "NOT":
         state["binding_power_stack"].append(30)
+
         try:
             argument = parse_expression()
         finally:
             state["binding_power_stack"].pop()
+
         left = node(
             "UnaryExpression",
             operator="not",
             argument=argument,
         )
+
     elif token in ("PLUS", "MINUS"):
         state["binding_power_stack"].append(70)
+
         try:
             argument = parse_expression()
         finally:
             state["binding_power_stack"].pop()
+
         left = node(
             "UnaryExpression",
             operator=TOKEN_TEXT[token],
             argument=argument,
         )
+
     elif token == "LPAREN":
         state["binding_power_stack"].append(0)
+
         try:
             left = parse_expression()
         finally:
             state["binding_power_stack"].pop()
+
         expect("RPAREN")
+
     elif token.isdigit():
         left = node("NumericLiteral", value=int(token))
+
     elif token[:1] in ('"', "'") and token[-1:] == token[:1]:
         left = node("StringLiteral", value=token[1:-1])
+
     elif is_identifier(token):
         left = node("Identifier", name=token)
+        
     else:
         raise SyntaxError(
             f"Unexpected token starting an expression: '{token}' "
