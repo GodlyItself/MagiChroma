@@ -27,7 +27,7 @@ BINDING_POWER = {
     "LPAREN": 80,
 }
 
-_parser_state = ContextVar("parser_state", default=None) ##like wth is this?
+_parser_state = ContextVar("parser_state", default=None) 
 
 
 def _state():
@@ -118,9 +118,11 @@ def parse_statement():
         case "FOR":
             statement = parse_for_statement()
         case "WHILE":
-            statement = parse_while_loop() ##good 'ol days
+            statement = parse_while_loop() 
         case "TRY" :
             statement = parse_try_catch()
+        case "BREAK" :
+            statement = parse_break_statement()
         case _:
             statement = parse_expression_statement()
     return statement
@@ -285,25 +287,24 @@ def parse_while_loop():
     statement = node(
         "WhileStatement",
         test=test,
-        body=body, ##I SWEAR TO GOD ONLY HAD I BRANCHED
+        body=body, 
     )
     return statement
 
 def parse_try_catch():
-    print('try catch')
     expect("TRY")
     try_body = parse_block()
     catch_body = {}
 
     if peek() == "CATCH":
-        expect("CATCH") ##Dumb ikr
+        expect("CATCH") 
         if peek() != "LBRACE":
             consume()
             condition_catch = parse_expression()
             condition_body = parse_block()
             catch_body[condition_catch] = condition_body
         else:
-            ##btw i had put a `consume` here and wrote a random comment on what it did, it basically ate lbrace, and ofc gave error. saved so many hours!
+            
             condition_body = parse_block()
             catch_body["catch"] = condition_body
     else:
@@ -316,6 +317,12 @@ def parse_try_catch():
     )
 
     return statement
+
+def parse_break_statement():
+    expect("BREAK")
+    return node(
+        "BreakStatement"
+    ) 
 
 def parse_expression(condition=False):
     state = _state()

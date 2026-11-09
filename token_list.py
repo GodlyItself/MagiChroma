@@ -1,6 +1,6 @@
 tokens = {
     # --- 1. Keywords & Reserved Words ---
-    'break': 'BREAK',
+    'break': 'BREAK', #done
     'case': 'CASE',
     'catch': 'CATCH',
     'const': 'CONST',
