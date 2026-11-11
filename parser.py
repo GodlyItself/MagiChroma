@@ -123,6 +123,8 @@ def parse_statement():
             statement = parse_try_catch()
         case "BREAK" :
             statement = parse_break_statement()
+        case "MATCH":
+            statement = parse_match_case()
         case _:
             statement = parse_expression_statement()
     return statement
@@ -162,7 +164,7 @@ def parse_variable_declaration():
 
 def parse_if_statement():
     expect("IF")
-    test = parse_expression()
+    test = parse_expression(condition=True)
     consequent = parse_block()
 
     elif_branches = []
@@ -268,7 +270,7 @@ def parse_function_declaration():
     return declaration
 
 
-def parse_for_statement():
+def parse_for_statement(): ## THIS NEEDS TO BE FIXED CUZ IT ACCOUNTS FOR `for (...) {...}` BUT I WANT IT LIKE `for value in iter {...}`
     expect("FOR")
     test = parse_expression()
     body = parse_block()
@@ -282,7 +284,7 @@ def parse_for_statement():
 
 def parse_while_loop():
     expect("WHILE")
-    test = parse_expression()
+    test = parse_expression(condition=True)
     body = parse_block()
     statement = node(
         "WhileStatement",
@@ -300,7 +302,7 @@ def parse_try_catch():
         expect("CATCH") 
         if peek() != "LBRACE":
             consume()
-            condition_catch = parse_expression()
+            condition_catch = parse_expression(condition=False)
             condition_body = parse_block()
             catch_body[condition_catch] = condition_body
         else:
@@ -323,6 +325,27 @@ def parse_break_statement():
     return node(
         "BreakStatement"
     ) 
+
+def parse_match_case():
+    expect("MATCH")
+    to_match = parse_expression()
+    expect("LBRACE")
+    
+    cases = {}
+    case_id = 0
+    while peek() == "CASE":
+        expect("CASE")
+        case_expr = parse_expression() 
+        case_block = parse_block()
+        cases[case_id] = case_block
+        print(f'cases are {cases}')
+    expect('RBRACE')
+        
+    return node(
+        "MatchCaseStatement",
+        MatchExpression=to_match,
+        Cases=cases
+    )
 
 def parse_expression(condition=False):
     state = _state()
