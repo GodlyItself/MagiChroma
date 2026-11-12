@@ -344,7 +344,8 @@ def parse_try_catch():
     return node(
         "TryStatement",
         try_body=try_body,
-        catch_clauses=catch_clauses
+        catch_clauses=catch_clauses,
+        #default=default_block if default else None
     )
 
 def parse_break_statement():
@@ -366,12 +367,19 @@ def parse_match_case():
         case_block = parse_block()
         cases[case_id] = case_block
         print(f'cases are {cases}')
-    expect('RBRACE')
+
+    default : bool = False
+    if peek() == 'DEFAULT':
+        default = True
+        expect("DEFAULT")
+        default_block = parse_block()
+        expect("RBRACE")
         
     return node(
         "MatchCaseStatement",
         MatchExpression=to_match,
-        Cases=cases
+        Cases=cases,
+        Default=default_block if default else None
     )
 
 def parse_expression(condition=False):

@@ -4,9 +4,9 @@ tokens = {
     'case': 'CASE', #done
     'catch': 'CATCH',#done
     'const': 'CONST',#done
-    'continue': 'CONTINUE',
-    'debugger': 'DEBUGGER',
-    'default': 'DEFAULT',
+    'continue': 'CONTINUE', #done
+    'debugger': 'DEBUGGER', #idk if i'll include it. skipping for now.
+    'default': 'DEFAULT', ##equivalent to `case _`.
     'delete': 'DELETE',
     'do': 'DO',
     'else': 'ELSE', #done
