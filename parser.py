@@ -339,6 +339,10 @@ def parse_try_catch():
         catch_clauses.append(
             node("CatchClause", condition=condition, body=body)
         )
+    final_statement = []
+    if peek() == "FINALLY":
+        expect("FINALLY")
+        final_statement = parse_block()
 
     if not catch_clauses:
         raise SyntaxError("Expected at least one 'catch' block after 'try'")
@@ -347,7 +351,7 @@ def parse_try_catch():
         "TryStatement",
         try_body=try_body,
         catch_clauses=catch_clauses,
-        #default=default_block if default else None
+        final_statement=final_statement
     )
 
 def parse_break_statement():

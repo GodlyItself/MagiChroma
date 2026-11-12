@@ -8,11 +8,11 @@ tokens = {
     'debugger': 'DEBUGGER', #idk if i'll include it. skipping for now.
     'default': 'DEFAULT', #done
     #'delete': 'DELETE',
-    'do': 'DO',
+    'do': 'DO', #done
     'else': 'ELSE', #done
     'elif': 'ELIF', #done
-    'export': 'EXPORT',
-    'extends': 'EXTENDS',
+    #'export': 'EXPORT',
+    #'extends': 'EXTENDS',
     'finally': 'FINALLY',
     'for': 'FOR',
     'function': 'FUNCTION', #done partial
