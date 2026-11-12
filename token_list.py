@@ -11,8 +11,8 @@ tokens = {
     'do': 'DO', #done
     'else': 'ELSE', #done
     'elif': 'ELIF', #done
-    #'export': 'EXPORT',
-    #'extends': 'EXTENDS',
+    'export': 'EXPORT',
+    'extends': 'EXTENDS',
     'finally': 'FINALLY',
     'for': 'FOR',
     'function': 'FUNCTION', #done partial
@@ -21,7 +21,7 @@ tokens = {
     'in': 'IN',
     'instanceof': 'INSTANCEOF',
     'new': 'NEW',
-    'return': 'RETURN',
+    'return': 'RETURN', #done
     'super': 'SUPER',
     'match': 'MATCH', 
     'this': 'THIS',

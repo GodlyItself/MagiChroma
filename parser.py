@@ -142,6 +142,8 @@ def parse_statement():
             statement = parse_continue_statement()
         case "DO":
             statement = parse_do_statement()
+        case "RETURN":
+            statement = parse_return_statement()
         case _:
             statement = parse_expression_statement()
 
@@ -399,6 +401,14 @@ def parse_do_statement():
         "DoWhileStatement",
         body=body,
         condition=condition
+    )
+
+def parse_return_statement():
+    expect("RETURN")
+    return_statement = parse_expression()
+    return node(
+        "ReturnStatement",
+        expression=return_statement
     )
 
 def parse_expression(condition=False):
