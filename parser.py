@@ -140,6 +140,8 @@ def parse_statement():
             statement = SyntaxError("Cannot use CASE  outside of MATCH")
         case "CONTINUE":
             statement = parse_continue_statement()
+        case "DO":
+            statement = parse_do_statement()
         case _:
             statement = parse_expression_statement()
 
@@ -380,6 +382,19 @@ def parse_match_case():
         MatchExpression=to_match,
         Cases=cases,
         Default=default_block if default else None
+    )
+
+def parse_do_statement():
+    expect("DO")
+    body=parse_block()
+    #expect("RPAREN")
+    expect("WHILE")
+    condition=parse_expression(condition=True)
+
+    return node(
+        "DoWhileStatement",
+        body=body,
+        condition=condition
     )
 
 def parse_expression(condition=False):

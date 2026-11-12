@@ -6,8 +6,8 @@ tokens = {
     'const': 'CONST',#done
     'continue': 'CONTINUE', #done
     'debugger': 'DEBUGGER', #idk if i'll include it. skipping for now.
-    'default': 'DEFAULT', ##equivalent to `case _`.
-    'delete': 'DELETE',
+    'default': 'DEFAULT', #done
+    #'delete': 'DELETE',
     'do': 'DO',
     'else': 'ELSE', #done
     'elif': 'ELIF', #done
