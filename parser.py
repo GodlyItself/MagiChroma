@@ -144,6 +144,8 @@ def parse_statement():
             statement = parse_do_statement()
         case "RETURN":
             statement = parse_return_statement()
+        case "THROW":
+            statement = parse_throw_statement()
         case _:
             statement = parse_expression_statement()
 
@@ -411,6 +413,13 @@ def parse_return_statement():
         expression=return_statement
     )
 
+def parse_throw_statement():
+    expect("THROW")
+    throw = parse_expression()
+    return node(
+        "ThrowStatement",
+        throw = throw
+    )
 def parse_expression(condition=False):
     state = _state()
     token = consume()

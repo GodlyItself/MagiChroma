@@ -23,8 +23,7 @@ tokens = {
     'new': 'NEW',
     'return': 'RETURN', #done
     'super': 'SUPER',
-    'match': 'MATCH', 
-    'this': 'THIS',
+    'match': 'MATCH', #done
     'throw': 'THROW',
     'try': 'TRY',
     'typeof': 'TYPEOF',
