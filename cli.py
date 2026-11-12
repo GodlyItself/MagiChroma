@@ -14,7 +14,7 @@ try:
     from pretty_print import pretty_print as pprint
     install(show_locals=True)
 
-    input_stream = "throw 2"
+    input_stream = "export function abc() {pass }"
     print(lexer.lexer(input_stream))
     pprint(parser.parse(lexer.lexer(input_stream)))
 except KeyboardInterrupt:

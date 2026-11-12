@@ -24,10 +24,9 @@ tokens = {
     'return': 'RETURN', #done
     'super': 'SUPER',
     'match': 'MATCH', #done
-    'throw': 'THROW',
-    'try': 'TRY',
+    'throw': 'THROW', #done
+    'try': 'TRY',#done
     'typeof': 'TYPEOF',
-    'var': 'VAR',
     'void': 'VOID',
     'while': 'WHILE', #done
     'with': 'WITH',

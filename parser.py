@@ -116,8 +116,10 @@ def parse_block(loop=False):
     block = node("BlockStatement", body=body)
     return block
 
-def parse_statement():
+def parse_statement(export=False):
     match peek():
+        case "EXPORT":
+            statement = parse_export_statement()
         case "LET" | "CONST":
             statement = parse_variable_declaration()
         case "IF":
@@ -420,6 +422,14 @@ def parse_throw_statement():
         "ThrowStatement",
         throw = throw
     )
+
+def parse_export_statement():
+    expect("EXPORT")
+    export_stuff = parse_statement()
+    export_stuff["export"] = True
+    return export_stuff
+
+
 def parse_expression(condition=False):
     state = _state()
     token = consume()
