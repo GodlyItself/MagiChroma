@@ -2,8 +2,8 @@ tokens = {
     # --- 1. Keywords & Reserved Words ---
     'break': 'BREAK', #done
     'case': 'CASE', #done
-    'catch': 'CATCH',
-    'const': 'CONST',
+    'catch': 'CATCH',#done
+    'const': 'CONST',#done
     'continue': 'CONTINUE',
     'debugger': 'DEBUGGER',
     'default': 'DEFAULT',
@@ -23,7 +23,7 @@ tokens = {
     'new': 'NEW',
     'return': 'RETURN',
     'super': 'SUPER',
-    'match': 'MATCH', ##match instead of switch. bleach ref tho i havent seen it (yet)
+    'match': 'MATCH', 
     'this': 'THIS',
     'throw': 'THROW',
     'try': 'TRY',

@@ -55,6 +55,11 @@ def consume():
         state["cursor"] += 1
     return token
 
+def consume_if(token_type):
+    if peek() == token_type:
+        consume()
+        return True
+    return False
 
 def expect(expected_type):
     token = peek()
@@ -93,17 +98,23 @@ def parse_statements():
         body.append(statement)
 
 
-def parse_block():
+def parse_block(loop=False):
     state = _state()
     expect("LBRACE")
     state["terminators"].append("RBRACE")
+    
+    if loop:
+        state["loop_depth"] = state.get("loop_depth", 0) + 1
+        
     try:
         body = parse_statements()
     finally:
         state["terminators"].pop()
+        if loop:
+            state["loop_depth"] -= 1
+            
     block = node("BlockStatement", body=body)
     return block
-
 
 def parse_statement():
     match peek():
@@ -125,10 +136,23 @@ def parse_statement():
             statement = parse_break_statement()
         case "MATCH":
             statement = parse_match_case()
+        case "CASE":
+            statement = SyntaxError("Cannot use CASE  outside of MATCH")
+        case "CONTINUE":
+            statement = parse_continue_statement()
         case _:
             statement = parse_expression_statement()
+
+    while consume_if("SEMICOLON"):
+        pass
     return statement
 
+def parse_continue_statement():
+    state = _state()
+    if state.get("loop_depth", 0) == 0:
+        raise SyntaxError("Cannot use CONTINUE outside of loop")
+    consume()
+    return node("ContinueStatement")
 
 def parse_variable_declaration():
     kind = consume()
@@ -270,10 +294,10 @@ def parse_function_declaration():
     return declaration
 
 
-def parse_for_statement(): ## THIS NEEDS TO BE FIXED CUZ IT ACCOUNTS FOR `for (...) {...}` BUT I WANT IT LIKE `for value in iter {...}`
+def parse_for_statement(): 
     expect("FOR")
-    test = parse_expression()
-    body = parse_block()
+    test = parse_expression(condition=True)
+    body = parse_block(loop=True)
     statement = node(
         "ForStatement",
         test=test,
@@ -285,7 +309,7 @@ def parse_for_statement(): ## THIS NEEDS TO BE FIXED CUZ IT ACCOUNTS FOR `for (.
 def parse_while_loop():
     expect("WHILE")
     test = parse_expression(condition=True)
-    body = parse_block()
+    body = parse_block(loop=True)
     statement = node(
         "WhileStatement",
         test=test,
@@ -296,29 +320,32 @@ def parse_while_loop():
 def parse_try_catch():
     expect("TRY")
     try_body = parse_block()
-    catch_body = {}
+    catch_clauses = []
 
-    if peek() == "CATCH":
-        expect("CATCH") 
-        if peek() != "LBRACE":
-            consume()
-            condition_catch = parse_expression(condition=False)
-            condition_body = parse_block()
-            catch_body[condition_catch] = condition_body
-        else:
-            
-            condition_body = parse_block()
-            catch_body["catch"] = condition_body
-    else:
-        catch_body = {}
-    
-    statement = node(
+    while peek() == "CATCH":
+        expect("CATCH")
+        condition = None
+
+        if peek() == "LPAREN":
+            expect("LPAREN")
+            condition = parse_expression(condition=False)
+            expect("RPAREN")
+        elif peek() != "LBRACE":
+            condition = parse_expression(condition=False)
+
+        body = parse_block()
+        catch_clauses.append(
+            node("CatchClause", condition=condition, body=body)
+        )
+
+    if not catch_clauses:
+        raise SyntaxError("Expected at least one 'catch' block after 'try'")
+
+    return node(
         "TryStatement",
         try_body=try_body,
-        catch_statements=catch_body
+        catch_clauses=catch_clauses
     )
-
-    return statement
 
 def parse_break_statement():
     expect("BREAK")

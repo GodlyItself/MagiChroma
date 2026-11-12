@@ -14,7 +14,7 @@ try:
     from pretty_print import pretty_print as pprint
     install(show_locals=True)
 
-    input_stream = "match 2 { case 4 {break;} }"
+    input_stream = "while x == 0 { continue ;}"
     print(lexer.lexer(input_stream))
     pprint(parser.parse(lexer.lexer(input_stream)))
 except KeyboardInterrupt:

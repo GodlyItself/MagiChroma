@@ -1,51 +1,49 @@
 import json
 import re
 
+COLORS = [
+    "\033[96m",  # Cyan (Level 0)
+    "\033[93m",  # Yellow (Level 1)
+    "\033[92m",  # Green (Level 2)
+    "\033[95m",  # Magenta (Level 3)
+    "\033[94m",  # Blue (Level 4)
+    "\033[91m",  # Red (Level 5)
+]
+RESET = "\033[0m"
+
+
+def colorize(text: str, level: int) -> str:
+    color = COLORS[level % len(COLORS)]
+    return f"{color}{text}{RESET}"
+
+
 def pretty_print(data: dict) -> None:
-    """
-    Prints a dictionary with strict newlines after [, ], {, }, and commas,
-    maintaining a consistent 4-space indentation level.
-    """
-    # 1. Convert dict to a single-line JSON string (removes existing formatting whitespace)
     raw_str = json.dumps(data)
-    
-    # 2. Tokenize the string into formatting structural elements and content strings
-    # This ensures commas inside text strings don't cause accidental newlines
-    tokens = re.split(r'([\{\}\[\],])', raw_str)
-    
+    tokens = re.findall(r'"(?:\\.|[^"\\])*"|[\{\}\[\],:]|[^"\{\}\[\],:\s]+', raw_str)
+
     indent_level = 0
     indent_size = 4
-    
-    for token in tokens:
-        if not token:
-            continue
-            
-        # Strip structural elements, but preserve content spaces
-        stripped_token = token.strip() if token in '\{\}[]' else token
-        
-        # Adjust indentation BEFORE printing closing brackets/braces
-        if stripped_token in '}]':
-            indent_level = max(0, indent_level - 1)
-            print() # Force newline before closing
-            print(" " * (indent_level * indent_size) + stripped_token, end="")
-            
-        elif stripped_token in '{[':
-            # Print opening bracket/brace
-            print(stripped_token, end="")
-            indent_level += 1
-            print() # Force newline after opening
-            print(" " * (indent_level * indent_size), end="")
-            
-        elif stripped_token == ',':
-            # Print comma
-            print(stripped_token) # Force newline after comma
-            print(" " * (indent_level * indent_size), end="")
-            
-        else:
-            # Print standard keys, values, or colons
-            # Clean up JSON spacing around colons for better readability
-            formatted_content = token.replace(':', ': ')
-            print(formatted_content, end="")
-            
-    print() # Final trailing newline
 
+    for token in tokens:
+        if token in "}]":
+            indent_level = max(0, indent_level - 1)
+            print()
+            print(" " * (indent_level * indent_size) + colorize(token, indent_level), end="")
+
+        elif token in "{[":
+            print(colorize(token, indent_level), end="")
+            indent_level += 1
+            print()
+            print(" " * (indent_level * indent_size), end="")
+
+        elif token == ",":
+            print(colorize(token, indent_level))
+            print(" " * (indent_level * indent_size), end="")
+
+        elif token == ":":
+            print(colorize(": ", indent_level), end="")
+
+        else:
+            print(colorize(token, indent_level), end="")
+
+    print()
