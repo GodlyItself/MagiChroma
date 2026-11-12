@@ -11,13 +11,14 @@ tokens = {
     'do': 'DO', #done
     'else': 'ELSE', #done
     'elif': 'ELIF', #done
-    'export': 'EXPORT',
-    'extends': 'EXTENDS',
-    'finally': 'FINALLY',
-    'for': 'FOR',
+    'export': 'EXPORT', #done
+    'finally': 'FINALLY',#done
+    'for': 'FOR',#done
     'function': 'FUNCTION', #done partial
     'if': 'IF', #done
-    'import': 'IMPORT',
+    'import': 'IMPORT', #done
+    'from' : 'FROM',
+    'everything' : 'ALL',
     'in': 'IN',
     'instanceof': 'INSTANCEOF',
     'new': 'NEW',

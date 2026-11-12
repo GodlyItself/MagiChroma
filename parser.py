@@ -148,6 +148,10 @@ def parse_statement(export=False):
             statement = parse_return_statement()
         case "THROW":
             statement = parse_throw_statement()
+        case "IMPORT":
+            statement = parse_import_statement()
+        case "FROM":
+            statement = parse_import_statement()
         case _:
             statement = parse_expression_statement()
 
@@ -429,6 +433,51 @@ def parse_export_statement():
     export_stuff["export"] = True
     return export_stuff
 
+def parse_import_statement(): ##lowk peek code; pun intended.
+    from_file = None
+    import_stuff = []
+    import_all = False
+
+    if peek() == "FROM":
+        consume()
+
+        from_file = consume()
+
+        if not is_identifier(from_file):
+            raise SyntaxError("Expected a valid module name")
+
+        expect("IMPORT")
+
+        if peek() == "ALL":
+            consume()
+            import_all = True
+
+    elif peek() == "IMPORT":
+        consume()
+
+    else:
+        raise SyntaxError("Expected 'FROM' or 'IMPORT'")
+
+    if not import_all:
+        while True:
+            name = consume()
+
+            if not is_identifier(name):
+                raise SyntaxError("Expected a valid import name")
+
+            import_stuff.append(name)
+
+            if peek() != "COMMA":
+                break
+
+            consume()
+
+    return node(
+        "ImportStatement",
+        origin=from_file,
+        importables=import_stuff,
+        import_all=import_all
+    )
 
 def parse_expression(condition=False):
     state = _state()
